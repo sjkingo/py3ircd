@@ -32,7 +32,7 @@ class Client:
 
     def __init__(self, transport):
         self.transport = transport
-        log.debug('C {} New connection'.format(self))
+        log.debug(f'C {self} New connection')
 
     def __str__(self):
         return self.peername
@@ -42,7 +42,7 @@ class Client:
         """ip:port<nick>"""
         ip, port = self.transport.get_extra_info('peername')
         nick = '<{}>'.format(self.ident.nick if self.ident.nick else '(unset)')
-        return '{}:{}{}'.format(ip, port, nick)
+        return f'{ip}:{port}{nick}'
 
     def _write(self, line):
         """
@@ -50,7 +50,7 @@ class Client:
         """
         data = (line + TERMINATOR).encode()
         self.transport.write(data)
-        log.debug('> {} {!r}'.format(self, line))
+        log.debug(f'> {self} {line!r}')
 
     def send(self, line, code=None):
         """
@@ -69,13 +69,13 @@ class Client:
         Parses the line given as an IRC command and dispatches it to
         a corresponding function.
         """
-        log.debug('< {} {!r}'.format(self, line))
+        log.debug(f'< {self} {line!r}')
         func_name, *args = line.split()
 
         try:
             func = getattr(commands, func_name)
         except AttributeError:
-            log.warn('! {} Unknown command {!r}'.format(self, line))
+            log.warn(f'! {self} Unknown command {line!r}')
             return
 
         try:
@@ -83,13 +83,13 @@ class Client:
         except TypeError as e:
             func_str = func_name + '()'
             if str(e).startswith(func_str):
-                log.warn('! {} Error in command {!r}: {}'.format(self, line, e))
+                log.warn(f'! {self} Error in command {line!r}: {e}')
                 return
             else:
                 raise
 
     def send_notices(self):
-        log.debug('C {} {} is now registered'.format(self, self.ident))
+        log.debug(f'C {self} {self.ident} is now registered')
         self.send('hello')
 
 class Server:
