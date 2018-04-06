@@ -4,6 +4,7 @@ The main IRC server.
 
 import logging
 log = logging.getLogger('ircd')
+import socket
 
 import commands
 
@@ -15,6 +16,10 @@ class Client:
     """
 
     nick = None
+    username = None
+    realname = None
+
+    code = 1
 
     def __init__(self, transport):
         self.transport = transport
@@ -30,10 +35,25 @@ class Client:
         nick = '<{}>'.format(self.nick if self.nick else '(unset)')
         return '{}:{}{}'.format(ip, port, nick)
 
-    def send(self, line):
+    def _write(self, line):
+        """
+        Low-level method to send a line back to the client.
+        """
         data = (line + TERMINATOR).encode()
         self.transport.write(data)
         log.debug('> {} {!r}'.format(self, line))
+
+    def send(self, line, code=None):
+        """
+        Format a correct server->client line and send it.
+        """
+        msg = ':{server} {code:03} {nick} :{line}'.format(
+                server=Server.server_name,
+                code=code if code is not None else self.code,
+                nick=self.nick,
+                line=line)
+        self._write(msg)
+        self.code += 1
 
     def dispatch(self, line):
         """
@@ -59,10 +79,17 @@ class Client:
             else:
                 raise
 
-        if r:
-            self.send(r)
+    @property
+    def registered(self):
+        return self.nick and self.username and self.realname
+
+    def send_notices(self):
+        log.debug('C {} {} ({}) is now registered'.format(self, self.username, self.realname))
+        self.send('hello')
 
 class Server:
+    server_name = socket.gethostname()
+
     clients = {} #: {transport: Client}
 
     def new_connection(self, transport):
