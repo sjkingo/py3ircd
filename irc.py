@@ -14,7 +14,7 @@ class Client:
 
     def __init__(self, transport):
         self.transport = transport
-        log.debug('C {}'.format(self))
+        log.debug('C {} New connection'.format(self))
         self.send('SERV')
 
     def __str__(self):
@@ -28,10 +28,10 @@ class Client:
     def send(self, line):
         data = (line + TERMINATOR).encode()
         self.transport.write(data)
-        log.debug('> {}: {!r}'.format(self, line))
+        log.debug('> {} {!r}'.format(self, line))
 
     def recv(self, line):
-        log.debug('< {}: {!r}'.format(self, line))
+        log.debug('< {} {!r}'.format(self, line))
 
 class Server:
     clients = {} #: {transport: Client}

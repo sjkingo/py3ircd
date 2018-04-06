@@ -5,6 +5,8 @@ here.
 """
 
 import asyncio
+import logging
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 from irc import Server, TERMINATOR
 server = Server()
