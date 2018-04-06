@@ -25,7 +25,7 @@ class Client:
 
     @property
     def peername(self):
-        """ip:port"""
+        """ip:port<nick>"""
         ip, port = self.transport.get_extra_info('peername')
         nick = '<{}>'.format(self.nick if self.nick else '(unset)')
         return '{}:{}{}'.format(ip, port, nick)
@@ -41,13 +41,12 @@ class Client:
         a corresponding function.
         """
         log.debug('< {} {!r}'.format(self, line))
-        cmd, *args = line.split()
-        func_name = cmd.lower()
+        func_name, *args = line.split()
 
         try:
             func = getattr(commands, func_name)
         except AttributeError:
-            log.warn('! {} Unknown command {} in {!r}'.format(self, cmd, line))
+            log.warn('! {} Unknown command {!r}'.format(self, line))
             return
 
         try:
