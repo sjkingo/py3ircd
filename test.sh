@@ -4,8 +4,7 @@
 server=$!
 sleep 1
 
-echo -n -e 'testing1\r\n' | nc localhost 6667 >/dev/null &
-echo -n -e 'testing2\r\n' | nc localhost 6667 >/dev/null &
+echo -n -e 'CAP LS\r\nNICK test1\r\nUSER test1 test1 localhost :Test1\r\n' | nc localhost 6667 >/dev/null &
 
 sleep 1
 pkill nc

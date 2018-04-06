@@ -1,14 +1,15 @@
 """
 IRC protocol module. This handles client connections using asyncio
 and delegates all activity to the `irc.IRCServer` class that is global
-here.
+here. This exists to be easily swapped out with a different server
+if required.
 """
 
 import asyncio
 import logging
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 
-from irc import Server, TERMINATOR
+from irc import Server
 server = Server()
 
 class IRCClientProtocol(asyncio.Protocol):
@@ -18,11 +19,12 @@ class IRCClientProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.client = server.new_connection(transport)
+        server.new_connection(transport)
 
     def data_received(self, data):
-        message = data.decode().rstrip(TERMINATOR)
-        server.parse_incoming_line(self.transport, message)
+        lines = [l for l in data.decode().split('\r\n') if len(l) > 0]
+        for line in lines:
+            server.data_received(self.transport, line)
 
 def run_server(host='0.0.0.0', port=6667):
     """
