@@ -4,7 +4,7 @@
 server=$!
 sleep 1
 
-echo -n -e 'CAP LS\r\nNICK test1\r\nUSER test1 test1 localhost :Test 1\r\n' | nc localhost 6667 >/dev/null &
+echo -n -e 'CAP LS\r\nNICK test1\r\nUSER test1 test1 localhost :Test 1\r\nPING wren.sjkwi.com.au\r\n' | nc localhost 6667 >/dev/null &
 
 sleep 1
 pkill nc
