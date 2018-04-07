@@ -41,14 +41,14 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
-    def send(self, cmd, msg, origin=None, to=None, suffix=None):
+    def send(self, cmd, msg, origin=None, to=None, suffix=None, sep=':'):
         """
         Formats a correct message and send it to the client.
         """
         to = self.ident.nick if to is None else to
         origin = self.server.name if origin is None else origin
         suffix = ' ' + suffix if suffix else ''
-        line = f':{origin} {cmd} {to}{suffix} :{msg}'
+        line = f':{origin} {cmd} {to}{suffix} {sep}{msg}'
         self._write(line)
 
     def registration_complete(self):

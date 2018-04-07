@@ -1,5 +1,6 @@
 import socket
 
+from channel import Channel
 from util import *
 
 class IncomingCommand:
@@ -56,6 +57,16 @@ class IncomingCommand:
     @classmethod
     def QUIT(cls, client, msg):
         pass
+
+    @classmethod
+    def JOIN(cls, client, name):
+        assert name[0] == '#'
+        name = name[1:]
+        channel = client.server.channels.get(name, None)
+        if not channel:
+            channel = Channel(name)
+            client.server.channels[name] = channel
+        channel.join(client)
 
 class Ident:
     """
