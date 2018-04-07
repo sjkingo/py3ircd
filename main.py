@@ -3,7 +3,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from server import run_server
+from net import run_server
 
 def main():
     run_server()

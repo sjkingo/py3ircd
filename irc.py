@@ -7,6 +7,7 @@ import logging
 log = logging.getLogger('ircd')
 import socket
 
+from channel import Channel
 from user import Ident, IncomingCommand
 
 __name__ = 'py3ircd'
@@ -40,13 +41,14 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
-    def send(self, cmd, msg, origin=None, to=None):
+    def send(self, cmd, msg, origin=None, to=None, suffix=None):
         """
         Formats a correct message and send it to the client.
         """
         to = self.ident.nick if to is None else to
         origin = self.server.name if origin is None else origin
-        line = f':{origin} {cmd} {to} :{msg}'
+        suffix = ' ' + suffix if suffix else ''
+        line = f':{origin} {cmd} {to}{suffix} :{msg}'
         self._write(line)
 
     def registration_complete(self):
@@ -59,7 +61,11 @@ class Client:
         self.send('001', f'Welcome to the Internet Relay Network {self.ident}')
         self.send('002', f'Your host is {s}, running version {s.version}')
         self.send('003', f'This server was created {s.created}')
-        self.send('004', f'{s.name} {s.version} <user modes> <channel modes>')
+        user_modes = ''.join(s.supported_user_modeset)
+        chan_modes = ''.join(s.supported_chan_modeset)
+        self.send('004', f'{s.name} {s.version} {user_modes} {chan_modes}')
+        self.send('251', 'There are {} user(s) on 1 server(s)'.format(len(s.clients)))
+        self.send('254', 'channels formed', suffix=str(len(s.channels)))
 
     def PONG(self):
         self.send('PONG', str(self.server), to=str(self.server))
@@ -69,7 +75,11 @@ class Server:
     version = f'{__name__} {__version__}'
     created = datetime.datetime.now()
 
+    supported_user_modeset = set(list('i'))
+    supported_chan_modeset = set(list('ns'))
+
     clients = {} #: {transport: Client}
+    channels = {} #: {name: Channel}
 
     def __str__(self):
         return self.name
