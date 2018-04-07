@@ -1,0 +1,3 @@
+
+class InvalidModelineError(Exception):
+    pass

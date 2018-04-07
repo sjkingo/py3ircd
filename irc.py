@@ -7,6 +7,8 @@ import logging
 log = logging.getLogger('ircd')
 import socket
 
+from util import *
+
 __name__ = 'py3ircd'
 __version__ = '0.1'
 
@@ -54,11 +56,31 @@ class IncomingCommand:
         if server1 == client.server.name:
             client.PONG()
 
+    @classmethod
+    def MODE(cls, client, target, mode):
+        """
+        MODE <nickname> <mode>
+        https://tools.ietf.org/html/rfc2812#section-3.1.5
+        """
+        client.ident.modeset = modeline_parser(mode, client.ident.modeset)
+        client.send('MODE', mode)
+
+    @classmethod
+    def QUIT(cls, client, msg):
+        pass
+
 class Ident:
+    """
+    Metadata on a client instance.
+    """
+
     # These are populated during registration
     nick = None
     username = None
     realname = None
+
+    # user mode set
+    modeset = set()
 
     def __init__(self, peername):
         self._peername = peername
@@ -71,9 +93,15 @@ class Ident:
     def registered(self):
         return self.nick and self.username and self.realname
 
+    @property
+    def mode(self):
+        m = '+' + ''.join(self.modeset)
+        return m if len(m) > 1 else ''
+
 class Client:
     """
-    A connected IRC client.
+    A connected IRC client connection.
+    Metadata on the client is stored in `self.ident`.
     """
 
     def __init__(self, transport, server):
@@ -84,8 +112,9 @@ class Client:
 
     def __str__(self):
         ip, port = self.ident._peername
-        nick = '<{}>'.format(self.ident.nick if self.ident.nick else '(unset)')
-        return f'{ip}:{port}{nick}'
+        nick = self.ident.nick or '(unreg)'
+        mode = f'({self.ident.mode})' if self.ident.mode else ''
+        return f'{ip}:{port} <{nick}{mode}>'
 
     def _write(self, line):
         """
@@ -95,12 +124,13 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
-    def send(self, cmd, msg, to=None):
+    def send(self, cmd, msg, origin=None, to=None):
         """
         Formats a correct message and send it to the client.
         """
         to = self.ident.nick if to is None else to
-        line = f':{self.server} {cmd} {to} :{msg}'
+        origin = self.server.name if origin is None else origin
+        line = f':{origin} {cmd} {to} :{msg}'
         self._write(line)
 
     def registration_complete(self):
