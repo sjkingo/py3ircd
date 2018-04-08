@@ -6,6 +6,7 @@ import datetime
 import logging
 log = logging.getLogger('ircd')
 import socket
+from util import *
 
 from codes import *
 from channel import Channel
@@ -61,6 +62,31 @@ class Client:
         """
         self._write(f':{self.server.name} {command} {msg}')
 
+    def send_as_nick(self, command, msg):
+        """
+        Sends a message as the nick (rarely used).
+        """
+        self._write(f':{self.ident.nick} {command} {msg}')
+
+    def set_mode(self, modeline):
+        """
+        Sets the user's mode.
+        """
+
+        # Verify the modeline has valid modes
+        for m in modeline:
+            if m.isalpha() and m not in self.server.supported_user_modeset:
+                self.send_as_server(ERR_UMODEUNKNOWNFLAG,
+                        f'{self.ident.nick} :Unknown MODE flag')
+                return
+
+        old_modeset = self.ident.modeset
+        self.ident.modeset = modeline_parser(modeline, old_modeset)
+
+        # Only send MODE message if modes have changed
+        if old_modeset != self.ident.modeset:
+            self.send_as_nick('MODE', f'{self.ident.nick} :{modeline}')
+
     def registration_complete(self):
         """
         Sends the registration complete notices to the client.
@@ -77,6 +103,7 @@ class Client:
         self.send_as_server(RPL_MYINFO, f'{nick} :{s} {s.version} {user_modes} {chan_modes}')
         self.send_as_server(RPL_LUSERCLIENT, f'{nick} :There are {len(s.clients)} user(s) on 1 server')
         self.send_as_server(RPL_LUSERCHANNELS, f'{nick} {len(s.channels)} :channels formed')
+        self.set_mode('+i')
 
     def dispatch_mode_for_channel(self, target, mode):
         """

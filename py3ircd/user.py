@@ -76,16 +76,14 @@ class IncomingCommand:
             return
 
         if target != client.ident.nick:
-            client.send_as_server(ERR_USERSDONTMATCH, f'{client.ident.nick} :Can\'t view or change mode for other users')
+            client.send_as_server(ERR_USERSDONTMATCH,
+                    f'{client.ident.nick} :Can\'t view or change mode for other users')
             return
 
         if mode is None:
-            # Reply with the current user's mode
             client.send_as_server(RPL_UMODEIS, f'{client.ident.nick} {client.ident.mode}')
         else:
-            # Set the current user's mode
-            client.ident.modeset = modeline_parser(mode, client.ident.modeset)
-            client.send_as_user('MODE', f'{client.ident.nick} :{mode}')
+            client.set_mode(mode)
 
     @classmethod
     def QUIT(cls, client, msg=None):

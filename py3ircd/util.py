@@ -1,3 +1,4 @@
+from copy import copy
 from exc import InvalidModelineError
 
 def modeline_parser(modeline, existing_set=None):
@@ -13,7 +14,7 @@ def modeline_parser(modeline, existing_set=None):
     current_op = None
     if existing_set is None:
         existing_set = set()
-    modeset = existing_set
+    modeset = copy(existing_set)
 
     for i in modeline:
         if i in valid_ops:
