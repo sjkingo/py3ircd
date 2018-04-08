@@ -122,16 +122,21 @@ class Server:
         func_name, *args = line.split()
         func = getattr(IncomingCommand, func_name, None)
 
+        # Dispatch and handle errors
         try:
             if func is None:
                 raise UnknownCommand(func_name)
-            r = func(client, *args)
+            func(client, *args)
+
         except UnknownCommand as e:
             log.info(f'! {client} *** Unknown command {e} ***')
             client.send_as_server(f'421 {client.ident.nick} {e} :Unknown command')
+
         except TypeError as e:
+            # A TypeError calling func() means the arguments were incorrect
             if str(e).startswith(func_name + '()'):
                 log.info(f'! {client} {line!r}: {e}')
                 client.send_as_server(f'461 {client.ident.nick} {func_name} :{e}')
+            # Or it could be an exception from the function execution itself
             else:
-                raise # could be an exception from the function itself
+                raise
