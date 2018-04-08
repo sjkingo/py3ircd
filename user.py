@@ -67,8 +67,14 @@ class IncomingCommand:
             client.send_as_user('MODE', f'{client.ident.nick} :{mode}')
 
     @classmethod
-    def QUIT(cls, client, msg):
-        pass
+    def QUIT(cls, client, msg=None):
+        """
+        QUIT [ <Quit Message> ]
+        https://tools.ietf.org/html/rfc2812#section-3.1.7
+        """
+        msg = f'Client quit: {msg[1:]}' if msg and len(msg) > 0 else 'Client quit'
+        client.send_as_user('QUIT', f':{msg}')
+        client.server.connection_lost(client._transport, msg)
 
     @classmethod
     def JOIN(cls, client, name):

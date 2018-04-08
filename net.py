@@ -26,6 +26,9 @@ class IRCClientProtocol(asyncio.Protocol):
         for line in lines:
             server.data_received(self.transport, line)
 
+    def connection_lost(self, exc):
+        server.connection_lost(self.transport, exc)
+
 def run_server(host='0.0.0.0', port=6667):
     """
     The main loop for the server.

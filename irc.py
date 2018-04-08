@@ -46,6 +46,13 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
+    def closed(self, reason):
+        """
+        Called when the client has quit or the underlying connection has
+        been closed.
+        """
+        log.debug(f'C {self} Closed connection ({reason})')
+
     def send_as_user(self, command, msg):
         """
         Sends a message using the client's prefix.
@@ -116,7 +123,9 @@ class Server:
         Catches any errors raised and sends back formatted error responses.
         """
 
-        assert transport in self.clients
+        if transport not in self.clients:
+            return
+        
         client = self.clients[transport]
         log.debug(f'< {client} {line!r}')
 
@@ -141,3 +150,10 @@ class Server:
             # Or it could be an exception from the function execution itself
             else:
                 raise
+
+    def connection_lost(self, transport, exc):
+        if transport not in self.clients:
+            return
+        reason = str(exc) if exc else 'Connection reset by peer'
+        self.clients[transport].closed(reason)
+        del self.clients[transport]
