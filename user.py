@@ -46,13 +46,25 @@ class IncomingCommand:
             client.PONG()
 
     @classmethod
-    def MODE(cls, client, target, mode):
+    def MODE(cls, client, target, mode=None):
         """
-        MODE <nickname> <mode>
+        MODE <@nickname>|<#channel> [<mode>]
         https://tools.ietf.org/html/rfc2812#section-3.1.5
         """
-        client.ident.modeset = modeline_parser(mode, client.ident.modeset)
-        client.send('MODE', mode)
+
+        if target[0] == '#':
+            client.dispatch_mode_for_channel(target, mode)
+            return
+
+        if target[0] == '@':
+            target = target[1:]
+
+        if mode is None:
+            # return client's mode
+            pass
+        else:
+            client.ident.modeset = modeline_parser(mode, client.ident.modeset)
+            client.send('MODE', mode)
 
     @classmethod
     def QUIT(cls, client, msg):

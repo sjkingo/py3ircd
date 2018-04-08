@@ -51,6 +51,12 @@ class Client:
         line = f':{origin} {cmd} {to}{suffix} {sep}{msg}'
         self._write(line)
 
+    def send_as_user(self, msg):
+        self._write(f':{self.ident} {msg}')
+
+    def send_as_server(self, msg):
+        self._write(f':{self.server.name} {msg}')
+
     def registration_complete(self):
         """
         Sends the registration complete notices to the client.
@@ -69,6 +75,14 @@ class Client:
 
     def PONG(self):
         self.send('PONG', str(self.server), to=str(self.server))
+
+    def dispatch_mode_for_channel(self, target, mode):
+        """
+        Called to set/get mode of a channel by this client.
+        """
+        channel = target[1:]
+        assert channel in self.server.channels
+        self.server.channels[channel].mode(self, mode)
 
 class Server:
     name = socket.gethostname()
