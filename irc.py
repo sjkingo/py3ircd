@@ -7,6 +7,7 @@ import logging
 log = logging.getLogger('ircd')
 import socket
 
+from codes import *
 from channel import Channel
 from exc import *
 from user import Ident, IncomingCommand
@@ -45,17 +46,17 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
-    def send_as_user(self, msg):
+    def send_as_user(self, command, msg):
         """
         Sends a message using the client's prefix.
         """
-        self._write(f':{self.ident} {msg}')
+        self._write(f':{self.ident} {command} {msg}')
 
-    def send_as_server(self, msg):
+    def send_as_server(self, command, msg):
         """
         Sends a message using the server's prefix.
         """
-        self._write(f':{self.server.name} {msg}')
+        self._write(f':{self.server.name} {command} {msg}')
 
     def registration_complete(self):
         """
@@ -65,14 +66,14 @@ class Client:
         s = self.server
         nick = self.ident.nick
         log.debug(f'C {self} {self.ident} is now registered to {s}')
-        self.send_as_server(f'001 {nick} :Welcome to the Internet Relay Network {self.ident}')
-        self.send_as_server(f'002 {nick} :Your host is {s}, running version {s.version}')
-        self.send_as_server(f'003 {nick} :This server was created {s.created}')
+        self.send_as_server(RPL_WELCOME, f'{nick} :Welcome to the Internet Relay Network {self.ident}')
+        self.send_as_server(RPL_YOURHOST, f'{nick} :Your host is {s}, running version {s.version}')
+        self.send_as_server(RPL_CREATED, f'{nick} :This server was created {s.created}')
         user_modes = ''.join(s.supported_user_modeset)
         chan_modes = ''.join(s.supported_chan_modeset)
-        self.send_as_server(f'004 {nick} :{s} {s.version} {user_modes} {chan_modes}')
-        self.send_as_server(f'251 {nick} :There are {len(s.clients)} user(s) on 1 server')
-        self.send_as_server(f'254 {nick} {len(s.channels)} :channels formed')
+        self.send_as_server(RPL_MYINFO, f'{nick} :{s} {s.version} {user_modes} {chan_modes}')
+        self.send_as_server(RPL_LUSERCLIENT, f'{nick} :There are {len(s.clients)} user(s) on 1 server')
+        self.send_as_server(RPL_LUSERCHANNELS, f'{nick} {len(s.channels)} :channels formed')
 
     def dispatch_mode_for_channel(self, target, mode):
         """
@@ -130,13 +131,13 @@ class Server:
 
         except UnknownCommand as e:
             log.info(f'! {client} *** Unknown command {e} ***')
-            client.send_as_server(f'421 {client.ident.nick} {e} :Unknown command')
+            client.send_as_server(ERR_UNKNOWNCOMMAND, f'{client.ident.nick} {e} :Unknown command')
 
         except TypeError as e:
             # A TypeError calling func() means the arguments were incorrect
             if str(e).startswith(func_name + '()'):
                 log.info(f'! {client} {line!r}: {e}')
-                client.send_as_server(f'461 {client.ident.nick} {func_name} :{e}')
+                client.send_as_server(ERR_NEEDSMOREPARAMS, f'{client.ident.nick} {func_name} :{e}')
             # Or it could be an exception from the function execution itself
             else:
                 raise

@@ -1,3 +1,4 @@
+from codes import *
 from util import modeline_parser
 
 DEFAULT_CHANNEL_MODE = '+ns'
@@ -21,8 +22,8 @@ class Channel:
         Join the specified client to this channel.
         """
         self.clients.add(client)
-        client.send_as_user(f'JOIN {self}')
-        client.send_as_server(f'MODE {self} {self.mode_as_str}')
+        client.send_as_user('JOIN', str(self))
+        client.send_as_server('MODE', f'{self} {self.mode_as_str}')
         self.send_names(client)
 
     def send_names(self, client):
@@ -30,15 +31,15 @@ class Channel:
         Send the NAMES list to the specified client.
         """
         nick = client.ident.nick
-        client.send_as_server(f'353 {nick} @ {self} :@{nick}')
-        client.send_as_server(f'366 {nick} {self} :End of /NAMES list.')
+        client.send_as_server(RPL_NAMREPLY, f'{nick} @ {self} :@{nick}')
+        client.send_as_server(RPL_ENDOFNAMES, f'{nick} {self} :End of /NAMES list.')
 
     def mode(self, client, mode=None):
         """
         Sets or gets the channel mode.
         """
         if mode is None:
-            client.send_as_server(f'324 {client.ident.nick} {self} {self.mode_as_str}')
+            client.send_as_server(RPL_CHANNELMODEIS, f'{client.ident.nick} {self} {self.mode_as_str}')
         else:
             self.modeset = modeline_parser(mode, self.modeset)
-            client.send_as_user(f'MODE {self} {mode}')
+            client.send_as_user('MODE', f'{self} {mode}')
