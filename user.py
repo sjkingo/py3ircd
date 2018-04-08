@@ -43,7 +43,7 @@ class IncomingCommand:
         Here we violate the spec by replying with a PONG to clients.
         """
         if server1 == client.server.name:
-            client.PONG()
+            client.send_as_server(f'PONG {server1} :{server1}')
 
     @classmethod
     def MODE(cls, client, target, mode=None):
@@ -64,7 +64,7 @@ class IncomingCommand:
             pass
         else:
             client.ident.modeset = modeline_parser(mode, client.ident.modeset)
-            client.send('MODE', mode)
+            client.send_as_user(f'MODE {client.ident.nick} :{mode}')
 
     @classmethod
     def QUIT(cls, client, msg):

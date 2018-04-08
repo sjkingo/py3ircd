@@ -41,20 +41,16 @@ class Client:
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
 
-    def send(self, cmd, msg, origin=None, to=None, suffix=None, sep=':'):
-        """
-        Formats a correct message and send it to the client.
-        """
-        to = self.ident.nick if to is None else to
-        origin = self.server.name if origin is None else origin
-        suffix = ' ' + suffix if suffix else ''
-        line = f':{origin} {cmd} {to}{suffix} {sep}{msg}'
-        self._write(line)
-
     def send_as_user(self, msg):
+        """
+        Sends a message using the client's prefix.
+        """
         self._write(f':{self.ident} {msg}')
 
     def send_as_server(self, msg):
+        """
+        Sends a message using the server's prefix.
+        """
         self._write(f':{self.server.name} {msg}')
 
     def registration_complete(self):
@@ -63,18 +59,16 @@ class Client:
         https://tools.ietf.org/html/rfc2812#section-5.1
         """
         s = self.server
-        log.debug(f'C {self} {self.ident} is now registered')
-        self.send('001', f'Welcome to the Internet Relay Network {self.ident}')
-        self.send('002', f'Your host is {s}, running version {s.version}')
-        self.send('003', f'This server was created {s.created}')
+        nick = self.ident.nick
+        log.debug(f'C {self} {self.ident} is now registered to {s}')
+        self.send_as_server(f'001 {nick} :Welcome to the Internet Relay Network {self.ident}')
+        self.send_as_server(f'002 {nick} :Your host is {s}, running version {s.version}')
+        self.send_as_server(f'003 {nick} :This server was created {s.created}')
         user_modes = ''.join(s.supported_user_modeset)
         chan_modes = ''.join(s.supported_chan_modeset)
-        self.send('004', f'{s.name} {s.version} {user_modes} {chan_modes}')
-        self.send('251', 'There are {} user(s) on 1 server(s)'.format(len(s.clients)))
-        self.send('254', 'channels formed', suffix=str(len(s.channels)))
-
-    def PONG(self):
-        self.send('PONG', str(self.server), to=str(self.server))
+        self.send_as_server(f'004 {nick} :{s} {s.version} {user_modes} {chan_modes}')
+        self.send_as_server(f'251 {nick} :There are {len(s.clients)} user(s) on 1 server')
+        self.send_as_server(f'254 {nick} {len(s.channels)} :channels formed')
 
     def dispatch_mode_for_channel(self, target, mode):
         """
