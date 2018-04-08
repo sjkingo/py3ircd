@@ -1,6 +1,7 @@
 import socket
 
 from channel import Channel
+from codes import *
 from util import *
 
 class IncomingCommand:
@@ -20,6 +21,11 @@ class IncomingCommand:
         NICK <nickname> [ <hopcount> ]
         https://tools.ietf.org/html/rfc1459#section-4.1.2
         """
+
+        if client.server.check_nick_in_use(nick):
+            client.send_as_server(ERR_NICKNAMEINUSE, f'* {nick} :Nickname is already in use.')
+            return
+
         client.ident.nick = nick
         if client.ident.registered:
             client.registration_complete()

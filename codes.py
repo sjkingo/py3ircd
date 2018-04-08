@@ -17,5 +17,6 @@ RPL_ENDOFNAMES =            '366'
 
 # Error codes
 ERR_UNKNOWNCOMMAND =        '421'
+ERR_NICKNAMEINUSE =         '433'
 ERR_NOTREGISTERED =         '451'
 ERR_NEEDSMOREPARAMS =       '461'

@@ -209,3 +209,12 @@ class Server:
                     self.check_timeout(t, since, interval, 'Ping timeout')
             else:
                 self.check_timeout(t, client.connected_at, interval, 'Connection timed out')
+
+    def check_nick_in_use(self, nick):
+        """
+        Checks if the specified nickname is in use already.
+        """
+        for client in self.clients.values():
+            if client.ident.nick == nick:
+                return True
+        return False
