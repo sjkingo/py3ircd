@@ -38,12 +38,25 @@ class IncomingCommand:
     @classmethod
     def PING(cls, client, server1, *ignore):
         """
-        PING <server1> [<server2>]
-        https://tools.ietf.org/html/rfc1459#section-4.6.2
-        Here we violate the spec by replying with a PONG to clients.
+        PING <server1> [ <server2> ]
+        https://tools.ietf.org/html/rfc2812#section-3.7.2
         """
+        if server1[0] == ':':
+            server1 = server1[1:]
         if server1 == client.server.name:
             client.send_as_server('PONG', f'{server1} :{server1}')
+
+    @classmethod
+    def PONG(cls, client, server1, *ignore):
+        """
+        PONG <server> [ <server2> ]
+        https://tools.ietf.org/html/rfc2812#section-3.7.3
+        """
+        if server1[0] == ':':
+            server1 = server1[1:]
+        if server1 == client.server.name:
+            if client.awaiting_pong_since:
+                client.awaiting_pong_since = None
 
     @classmethod
     def MODE(cls, client, target, mode=None):
