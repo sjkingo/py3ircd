@@ -29,6 +29,9 @@ class Client:
         log.debug(f'C {self} New connection')
 
     def __str__(self):
+        """
+        Example: <nick(+i)> or <(unreg)> or <nick>
+        """
         ip, port = self.ident._peername
         nick = self.ident.nick or '(unreg)'
         mode = f'({self.ident.mode})' if self.ident.mode else ''
@@ -80,10 +83,16 @@ class Client:
         self.server.channels[channel].mode(self, mode)
 
 class Server:
+    """
+    The main IRC server instance.
+    """
+
+    # Some metadata on this server
     name = socket.gethostname()
     version = f'{__name__} {__version__}'
     created = datetime.datetime.now()
 
+    # The supported modes for this server
     supported_user_modeset = set(list('i'))
     supported_chan_modeset = set(list('ns'))
 
