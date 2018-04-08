@@ -67,7 +67,7 @@ class IncomingCommand:
     @classmethod
     def MODE(cls, client, target, mode=None):
         """
-        MODE <@nickname>|<#channel> [<mode>]
+        MODE <nickname>|<#channel> [<mode>]
         https://tools.ietf.org/html/rfc2812#section-3.1.5
         """
 
@@ -75,13 +75,15 @@ class IncomingCommand:
             client.dispatch_mode_for_channel(target, mode)
             return
 
-        if target[0] == '@':
-            target = target[1:]
+        if target != client.ident.nick:
+            client.send_as_server(ERR_USERSDONTMATCH, f'{client.ident.nick} :Can\'t view or change mode for other users')
+            return
 
         if mode is None:
-            # return client's mode
-            pass
+            # Reply with the current user's mode
+            client.send_as_server(RPL_UMODEIS, f'{client.ident.nick} {client.ident.mode}')
         else:
+            # Set the current user's mode
             client.ident.modeset = modeline_parser(mode, client.ident.modeset)
             client.send_as_user('MODE', f'{client.ident.nick} :{mode}')
 
@@ -150,5 +152,4 @@ class Ident:
 
     @property
     def mode(self):
-        m = '+' + ''.join(self.modeset)
-        return m if len(m) > 1 else ''
+        return '+' + ''.join(self.modeset)
