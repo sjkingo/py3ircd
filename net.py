@@ -12,6 +12,8 @@ logging.getLogger('asyncio').setLevel(logging.WARNING)
 from irc import Server
 server = Server()
 
+TIMER_INTERVAL = 30
+
 class IRCClientProtocol(asyncio.Protocol):
     """
     Client protocol class that delegates to the server instance.
@@ -29,6 +31,13 @@ class IRCClientProtocol(asyncio.Protocol):
     def connection_lost(self, exc):
         server.connection_lost(self.transport, exc)
 
+async def timer_tick(future):
+    while True:
+        if future.cancelled():
+            return
+        await asyncio.sleep(TIMER_INTERVAL)
+        server.send_pings(TIMER_INTERVAL)
+
 def run_server(host='0.0.0.0', port=6667):
     """
     The main loop for the server.
@@ -36,6 +45,9 @@ def run_server(host='0.0.0.0', port=6667):
 
     loop = asyncio.get_event_loop()
     c = loop.create_server(IRCClientProtocol, host, port)
+    future = asyncio.Future()
+    asyncio.ensure_future(timer_tick(future))
+
     net = loop.run_until_complete(c)
 
     try:
@@ -43,6 +55,7 @@ def run_server(host='0.0.0.0', port=6667):
     except KeyboardInterrupt:
         pass
 
+    future.cancel()
     net.close()
     loop.run_until_complete(net.wait_closed())
     loop.close()

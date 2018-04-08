@@ -73,8 +73,7 @@ class IncomingCommand:
         https://tools.ietf.org/html/rfc2812#section-3.1.7
         """
         msg = f'Client quit: {msg[1:]}' if msg and len(msg) > 0 else 'Client quit'
-        client.send_as_user('QUIT', f':{msg}')
-        client.server.connection_lost(client._transport, msg)
+        client.server.client_close(client._transport, msg)
 
     @classmethod
     def JOIN(cls, client, name):

@@ -23,10 +23,13 @@ class Client:
     Metadata on the client is stored in `self.ident`.
     """
 
+    awaiting_pong_since = None
+
     def __init__(self, transport, server):
         self._transport = transport
         self.server = server
         self.ident = Ident(transport.get_extra_info('peername'))
+        self.connected_at = datetime.datetime.now()
         log.debug(f'C {self} New connection')
 
     def __str__(self):
@@ -45,13 +48,6 @@ class Client:
         data = (line + TERMINATOR).encode()
         self._transport.write(data)
         log.debug(f'> {self} {line!r}')
-
-    def closed(self, reason):
-        """
-        Called when the client has quit or the underlying connection has
-        been closed.
-        """
-        log.debug(f'C {self} Closed connection ({reason})')
 
     def send_as_user(self, command, msg):
         """
@@ -89,6 +85,13 @@ class Client:
         channel = target[1:]
         assert channel in self.server.channels
         self.server.channels[channel].mode(self, mode)
+
+    def ping(self):
+        """
+        Send a ping request to the client.
+        """
+        self._write(f'PING :{self.server.name}')
+        self.awaiting_pong_since = datetime.datetime.now()
 
 class Server:
     """
@@ -159,9 +162,47 @@ class Server:
         except UnregisteredDisallow as e:
             client.send_as_server(ERR_NOTREGISTERED, f':You have not registered')
 
+    def client_close(self, transport, reason):
+        """
+        Called the close a client's connection.
+        """
+        client = self.clients[transport]
+        log.debug(f'C {client} Closed connection ({reason})')
+        if client.ident.registered:
+            client.send_as_user('QUIT', f':{reason}')
+        client._write(f'ERROR :Closing Link: {client.ident.hostname} ({reason})')
+        del self.clients[transport]
+        transport.close()
+
     def connection_lost(self, transport, exc):
+        """
+        Called when a client connection is lost (peer closed, reset, etc).
+        """
         if transport not in self.clients:
             return
         reason = str(exc) if exc else 'Connection reset by peer'
-        self.clients[transport].closed(reason)
-        del self.clients[transport]
+        self.client_close(transport, reason)
+
+    def check_timeout(self, transport, earlier_time, interval, error_msg):
+        """
+        Check for a timeout and close connection if so.
+        """
+        now = datetime.datetime.now()
+        secs = int((now - earlier_time).total_seconds())
+        if secs >= interval:
+            self.connection_lost(transport, f'{error_msg}: {secs} seconds')
+
+    def send_pings(self, interval):
+        """
+        Send PING requests to all clients and check any pending PONGs.
+        """
+        for client in list(self.clients.values()):
+            t = client._transport
+            if client.ident.registered:
+                since = client.awaiting_pong_since
+                if not since:
+                    client.ping()
+                else:
+                    self.check_timeout(t, since, interval, 'Ping timeout')
+            else:
+                self.check_timeout(t, client.connected_at, interval, 'Connection timed out')
