@@ -93,8 +93,8 @@ class Server:
     created = datetime.datetime.now()
 
     # The supported modes for this server
-    supported_user_modeset = set(list('i'))
-    supported_chan_modeset = set(list('ns'))
+    supported_user_modeset = frozenset(list('i'))
+    supported_chan_modeset = frozenset(list('ns'))
 
     clients = {} #: {transport: Client}
     channels = {} #: {name: Channel}
