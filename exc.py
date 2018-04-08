@@ -3,3 +3,6 @@ class InvalidModelineError(Exception):
 
 class UnknownCommand(Exception):
     pass
+
+class UnregisteredDisallow(Exception):
+    pass

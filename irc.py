@@ -104,6 +104,9 @@ class Server:
     supported_user_modeset = frozenset(list('i'))
     supported_chan_modeset = frozenset(list('ns'))
 
+    # Commands that can be received without registering
+    allowed_unregistered_cmds = frozenset(['NICK', 'USER', 'QUIT'])
+
     clients = {} #: {transport: Client}
     channels = {} #: {name: Channel}
 
@@ -125,7 +128,7 @@ class Server:
 
         if transport not in self.clients:
             return
-        
+
         client = self.clients[transport]
         log.debug(f'< {client} {line!r}')
 
@@ -136,6 +139,8 @@ class Server:
         try:
             if func is None:
                 raise UnknownCommand(func_name)
+            if not client.ident.registered and func_name not in self.allowed_unregistered_cmds:
+                raise UnregisteredDisallow()
             func(client, *args)
 
         except UnknownCommand as e:
@@ -150,6 +155,9 @@ class Server:
             # Or it could be an exception from the function execution itself
             else:
                 raise
+
+        except UnregisteredDisallow as e:
+            client.send_as_server(ERR_NOTREGISTERED, f':You have not registered')
 
     def connection_lost(self, transport, exc):
         if transport not in self.clients:
