@@ -102,6 +102,7 @@ class Server:
     name = socket.gethostname()
     version = f'{__name__} {__version__}'
     created = datetime.datetime.now()
+    info = version
 
     # The supported modes for this server
     supported_user_modeset = frozenset(list('i'))
@@ -210,11 +211,17 @@ class Server:
             else:
                 self.check_timeout(t, client.connected_at, interval, 'Connection timed out')
 
+    def get_client_by_nick(self, nick):
+        """
+        Returns a Client instance by nickname.
+        """
+        for client in self.clients.values():
+            if client.ident.nick == nick:
+                return client
+        return None
+
     def check_nick_in_use(self, nick):
         """
         Checks if the specified nickname is in use already.
         """
-        for client in self.clients.values():
-            if client.ident.nick == nick:
-                return True
-        return False
+        return self.get_client_by_nick(nick) is not None

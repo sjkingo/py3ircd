@@ -104,6 +104,26 @@ class IncomingCommand:
             client.server.channels[name] = channel
         channel.join(client)
 
+    @classmethod
+    def WHOIS(cls, client, target):
+        """
+        WHOIS <target>
+        https://tools.ietf.org/html/rfc2812#section-3.6.2
+        """
+
+        prefix = f'{client.ident.nick} {target}'
+        s = client.server
+
+        user = client.server.get_client_by_nick(target)
+        if user is None:
+            client.send_as_server(ERR_NOSUCHNICK, ':No such nick/channel')
+        else:
+            i = user.ident
+            client.send_as_server(RPL_WHOISUSER, f'{prefix} ~{target} {i.hostname} * :{i.realname}')
+            client.send_as_server(RPL_WHOISSERVER, f'{prefix} {s.name} :{s.info}')
+
+        client.send_as_server(RPL_ENDOFWHOIS, f'{prefix} :End of /WHOIS list.')
+
 class Ident:
     """
     Metadata on a client instance.
