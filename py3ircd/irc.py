@@ -31,16 +31,11 @@ class Client:
         self.server = server
         self.ident = Ident(transport.get_extra_info('peername'))
         self.connected_at = datetime.datetime.now()
-        log.debug(f'C {self} New connection')
+        ip, port = self.ident._peername
+        log.info(f'{self} ## New connection from {ip}:{port}')
 
     def __str__(self):
-        """
-        Example: <nick(+i)> or <(unreg)> or <nick>
-        """
-        ip, port = self.ident._peername
-        nick = self.ident.nick or '(unreg)'
-        mode = f'({self.ident.mode})' if self.ident.mode else ''
-        return f'{ip}:{port} <{nick}{mode}>'
+        return self.ident.nick or '(unreg)'
 
     def _write(self, line):
         """
@@ -48,7 +43,7 @@ class Client:
         """
         data = (line + TERMINATOR).encode()
         self._transport.write(data)
-        log.debug(f'> {self} {line!r}')
+        log.debug(f'{self} >> {line!r}')
 
     def send_as_user(self, command, msg):
         """
@@ -94,7 +89,7 @@ class Client:
         """
         s = self.server
         nick = self.ident.nick
-        log.debug(f'C {self} {self.ident} is now registered to {s}')
+        log.debug(f'{self} ## {self.ident} is now registered to {s}')
         self.send_as_server(RPL_WELCOME, f'{nick} :Welcome to the Internet Relay Network {self.ident}')
         self.send_as_server(RPL_YOURHOST, f'{nick} :Your host is {s}, running version {s.version}')
         self.send_as_server(RPL_CREATED, f'{nick} :This server was created {s.created}')
@@ -161,7 +156,7 @@ class Server:
             return
 
         client = self.clients[transport]
-        log.debug(f'< {client} {line!r}')
+        log.debug(f'{client} << {line!r}')
 
         try:
             func_name, *args = line.split()
@@ -178,32 +173,31 @@ class Server:
             func(client, *args)
 
         except UnknownCommand as e:
-            log.info(f'! {client} *** Unknown command {e} ***')
+            log.info(f'{client} *** Unknown command {e} ***')
             client.send_as_server(ERR_UNKNOWNCOMMAND, f'{client.ident.nick} {e} :Unknown command')
 
         except TypeError as e:
             # A TypeError calling func() means the arguments were incorrect
             if str(e).startswith(func_name + '()'):
-                log.info(f'! {client} {line!r}: {e}')
                 client.send_as_server(ERR_NEEDSMOREPARAMS, f'{client.ident.nick} {func_name} :{e}')
             # Or it could be an exception from the function execution itself
             else:
                 raise
 
         except UnregisteredDisallow as e:
-            client.send_as_server(ERR_NOTREGISTERED, f':You have not registered')
+            client.send_as_server(ERR_NOTREGISTERED, f'* :You have not registered')
 
     def client_close(self, transport, reason):
         """
         Called the close a client's connection.
         """
         client = self.clients[transport]
-        log.debug(f'C {client} Closed connection ({reason})')
         if client.ident.registered:
             client.send_as_user('QUIT', f':{reason}')
         client._write(f'ERROR :Closing Link: {client.ident.hostname} ({reason})')
         del self.clients[transport]
         transport.close()
+        log.info(f'{client} ## Closed connection ({reason})')
 
     def connection_lost(self, transport, exc):
         """
