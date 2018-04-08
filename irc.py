@@ -8,6 +8,7 @@ log = logging.getLogger('ircd')
 import socket
 
 from channel import Channel
+from exc import *
 from user import Ident, IncomingCommand
 
 __name__ = 'py3ircd'
@@ -93,26 +94,35 @@ class Server:
         return self.name
 
     def new_connection(self, transport):
+        """
+        Handles an incoming connection from a new client.
+        """
         assert transport not in self.clients
         self.clients[transport] = Client(transport, self)
 
     def data_received(self, transport, line):
+        """
+        Parse line from client and dispatch to appropriate function.
+        Catches any errors raised and sends back formatted error responses.
+        """
+
         assert transport in self.clients
         client = self.clients[transport]
         log.debug(f'< {client} {line!r}')
 
         func_name, *args = line.split()
-        try:
-            func = getattr(IncomingCommand, func_name)
-        except AttributeError:
-            log.info(f'! {client} *** Unknown command {line!r}')
-            return
+        func = getattr(IncomingCommand, func_name, None)
 
         try:
+            if func is None:
+                raise UnknownCommand(func_name)
             r = func(client, *args)
+        except UnknownCommand as e:
+            log.info(f'! {client} *** Unknown command {e} ***')
+            client.send_as_server(f'421 {client.ident.nick} {e} :Unknown command')
         except TypeError as e:
             if str(e).startswith(func_name + '()'):
                 log.info(f'! {client} {line!r}: {e}')
-                return
+                client.send_as_server(f'461 {client.ident.nick} {func_name} :{e}')
             else:
-                raise
+                raise # could be an exception from the function itself
