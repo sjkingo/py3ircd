@@ -135,7 +135,10 @@ class Server:
         client = self.clients[transport]
         log.debug(f'< {client} {line!r}')
 
-        func_name, *args = line.split()
+        try:
+            func_name, *args = line.split()
+        except ValueError:
+            return
         func = getattr(IncomingCommand, func_name, None)
 
         # Dispatch and handle errors
