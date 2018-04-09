@@ -86,12 +86,13 @@ class IncomingCommand:
             client.set_mode(mode)
 
     @classmethod
-    def QUIT(cls, client, msg=None):
+    def QUIT(cls, client, *msg_parts):
         """
         QUIT [ <Quit Message> ]
         https://tools.ietf.org/html/rfc2812#section-3.1.7
         """
-        msg = f'Client quit: {msg[1:]}' if msg and len(msg) > 0 else 'Client quit'
+        reason = ' '.join(msg_parts)[1:]
+        msg = f'Client quit: ({reason})' if len(reason) > 0 else 'Client quit'
         client.server.client_close(client._transport, msg)
 
     @classmethod
