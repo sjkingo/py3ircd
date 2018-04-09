@@ -106,7 +106,7 @@ class IncomingCommand:
 
         channel = client.server.channels.get(name, None)
         if not channel:
-            channel = Channel(name)
+            channel = Channel(name, client)
             client.server.channels[name] = channel
 
         channel.join(client)
@@ -131,6 +131,18 @@ class IncomingCommand:
 
         client.send_as_server(RPL_ENDOFWHOIS, f'{prefix} :End of /WHOIS list.')
 
+    @classmethod
+    def WHO(cls, client, target):
+        """
+        WHO <target>
+        https://tools.ietf.org/html/rfc2812#section-3.6.1
+        """
+        if target[0] == '#':
+            chan = client.server.channels.get(target[1:], None)
+            if not chan:
+                pass
+            chan.send_who(client)
+
 class Ident:
     """
     Metadata on a client instance.
@@ -140,6 +152,7 @@ class Ident:
     nick = None
     username = None
     realname = None
+    prefix = '~'
 
     # user mode set
     modeset = set()
