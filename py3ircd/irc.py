@@ -51,7 +51,7 @@ class Client:
         Sends a message using the client's prefix.
         """
         user = self if user is None else user
-        self._write(f':{self.ident} {command} {msg}')
+        self._write(f':{user.ident} {command} {msg}')
 
     def send_as_server(self, command, msg):
         """
