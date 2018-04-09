@@ -96,12 +96,18 @@ class IncomingCommand:
 
     @classmethod
     def JOIN(cls, client, name):
+        """
+        Joins the specified channel, creating it if it doesn't exist.
+        """
+
         assert name[0] == '#'
         name = name[1:]
+
         channel = client.server.channels.get(name, None)
         if not channel:
             channel = Channel(name)
             client.server.channels[name] = channel
+
         channel.join(client)
 
     @classmethod

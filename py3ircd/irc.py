@@ -25,6 +25,7 @@ class Client:
     """
 
     awaiting_pong_since = None
+    joined_channels = {} #: {name: Channel}
 
     def __init__(self, transport, server):
         self._transport = transport
@@ -45,10 +46,11 @@ class Client:
         self._transport.write(data)
         log.debug(f'{self} >> {line!r}')
 
-    def send_as_user(self, command, msg):
+    def send_as_user(self, command, msg, user=None):
         """
         Sends a message using the client's prefix.
         """
+        user = self if user is None else user
         self._write(f':{self.ident} {command} {msg}')
 
     def send_as_server(self, command, msg):
@@ -191,10 +193,16 @@ class Server:
         """
         Called the close a client's connection.
         """
+
         client = self.clients[transport]
+
         if client.ident.registered:
             client.send_as_user('QUIT', f':{reason}')
+        for chan in client.joined_channels.values():
+            chan.user_quit(client, reason)
+
         client._write(f'ERROR :Closing Link: {client.ident.hostname} ({reason})')
+
         del self.clients[transport]
         transport.close()
         log.info(f'{client} ## Closed connection ({reason})')

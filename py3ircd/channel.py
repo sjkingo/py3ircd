@@ -21,18 +21,39 @@ class Channel:
         """
         Join the specified client to this channel.
         """
+
         self.clients.add(client)
-        client.send_as_user('JOIN', str(self))
-        client.send_as_server('MODE', f'{self} {self.mode_as_str}')
-        self.send_names(client)
+        client.joined_channels[self.name] = self
+
+        for c in self.clients:
+            c.send_as_user('JOIN', str(self))
+
+        # Newly created channel
+        if len(self.clients) == 1:
+            client.send_as_server('MODE', f'{self} {self.mode_as_str}')
+
+        for c in self.clients:
+            self.send_names(c)
 
     def send_names(self, client):
         """
         Send the NAMES list to the specified client.
         """
         nick = client.ident.nick
-        client.send_as_server(RPL_NAMREPLY, f'{nick} @ {self} :@{nick}')
+        others = ' '.join([c.ident.nick for c in self.clients])
+        client.send_as_server(RPL_NAMREPLY, f'{nick} @ {self} :@{others}')
         client.send_as_server(RPL_ENDOFNAMES, f'{nick} {self} :End of /NAMES list.')
+
+    def user_quit(self, client, reason):
+        """
+        Send a QUIT message to all users in the channel when the specified
+        client quits, and remove them from the channel.
+        """
+        for c in self.clients:
+            if c == client:
+                continue
+            c.send_as_user('QUIT', f':{reason}', user=client) # send as client
+        self.clients.remove(client)
 
     def mode(self, client, mode=None):
         """
