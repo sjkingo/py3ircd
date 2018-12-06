@@ -23,6 +23,8 @@ class Channel:
         Sends the specified message to all users on the channel.
         """
         for c in self.clients:
+            if c == user:
+                continue
             c.send_as_user(command, msg, user=user)
 
     def chansend_as_server(self, command, msg):
@@ -102,3 +104,9 @@ class Channel:
         i = o.ident
         client.send_as_server(RPL_WHOREPLY, f'{prefix} {i.prefix}{i.nick} {i.hostname} {o.server.name} {client.ident.nick} H :0 {i.realname}')
         client.send_as_server(RPL_ENDOFWHO, f'{prefix} :End of /WHO list.')
+
+    def send_to_channel(self, sender, msg):
+        """
+        Sends a message to the channel.
+        """
+        self.chansend_as_user('PRIVMSG', f'{self} :{msg}', user=sender)

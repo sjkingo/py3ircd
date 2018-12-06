@@ -101,8 +101,8 @@ class IncomingCommand:
         Joins the specified channel, creating it if it doesn't exist.
         """
 
-        assert name[0] == '#'
-        name = name[1:]
+        if name[0] == '#':
+            name = name[1:]
 
         channel = client.server.channels.get(name, None)
         if not channel:
@@ -142,6 +142,22 @@ class IncomingCommand:
             if not chan:
                 pass
             chan.send_who(client)
+
+    @classmethod
+    def PRIVMSG(cls, client, target, *msg_parts):
+        """
+        PRIVMSG
+        <msgtarget> <text to be sent>
+        https://tools.ietf.org/html/rfc2812#section-3.3.1
+        """
+
+        msg = ' '.join(msg_parts)[1:]
+
+        if target[0] == '#':
+            chan = client.server.channels.get(target[1:], None)
+            if not chan:
+                pass
+            chan.send_to_channel(client, msg)
 
 class Ident:
     """
